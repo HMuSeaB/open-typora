@@ -4,7 +4,7 @@
     {"label":"新建窗口","action":"newWindow","key":"Mod-Shift-N"},
     {"label":"新建标签页","action":"newTab","key":"Mod-T"},
     {"label":"打开文件…","action":"open","key":"Mod-O"},
-    {"label":"快速打开…","action":"quick-open","key":"Mod-Shift-O"},
+    {"label":"快速打开…","action":"quick-open","key":"Mod-P"},
     {"label":"重新打开关闭的文档","action":"reopen","key":"Mod-Shift-T"},
     {"label":"打开文件夹…","action":"folder"},
     {"label":"最近文件与文件夹…","action":"recent"},

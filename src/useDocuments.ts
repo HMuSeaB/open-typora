@@ -447,6 +447,8 @@ export function useDocuments(canPrepare: () => boolean = () => true) {
     active: documents.find((record) => record.id === activeId),
     files,
     folder,
+    setFiles,
+    setFolder,
     ready,
     message,
     setMessage,

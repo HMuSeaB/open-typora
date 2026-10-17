@@ -69,6 +69,9 @@ const browser: Host = {
       input.addEventListener("cancel", () => resolve(null));
       input.click();
     }),
+  async openPath() {
+    throw new Error("直接路径打开请使用桌面应用。");
+  },
   async openFolder() {
     throw new Error("打开文件夹请使用桌面应用。浏览器预览可以打开单个文件。");
   },

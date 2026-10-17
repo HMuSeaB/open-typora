@@ -41,10 +41,27 @@ const pending = [];
 let rendererReady = false;
 const pluginToken = randomUUID();
 const authorizedPlugin = item => item && ({ ...item, url: item.url + "?token=" + pluginToken });
+
+async function openTarget(targetPath) {
+  try {
+    const targetStat = await stat(targetPath);
+    if (targetStat.isDirectory()) {
+      const scanned = await store.scan(targetPath);
+      await workspace.remember(targetPath, true);
+      send({ action: "opened-folder", folder: scanned.folder, files: scanned.files });
+    } else {
+      const document = await store.open(targetPath);
+      await workspace.remember(targetPath, false);
+      send({ action: "opened", document });
+    }
+  } catch (err) {
+    showError(err);
+  }
+}
+
 function openFiles(files) {
   for (const file of files) {
-    if (window && rendererReady) store.open(file)
-      .then(document => send({ action: "opened", document })).catch(showError);
+    if (window && rendererReady) void openTarget(file);
     else pending.push(file);
   }
 }
@@ -104,10 +121,25 @@ const handlers = {
   importDocument: async () => { const result = await dialog.showOpenDialog(window, { title: "导入文档", properties: ["openFile"], filters: [{ name: "文档", extensions: ["docx", "doc", "rtf", "odt", "epub", "tex", "rst", "html", "txt"] }] }); return result.canceled ? null : convertImport(result.filePaths[0]); },
   exportConverted: async (_, id, format, source, html) => { const record = store.require(id), ext = { latex: "tex", revealjs: "html", mediawiki: "wiki" }[format] || format; const result = await dialog.showSaveDialog(window, { defaultPath: record.name.replace(/\.[^.]+$/, "." + ext) }); return result.canceled ? null : convertExport(store.dataDir, format, source, html, result.filePath); },
   imageAction: async (_, id, sources, action, options) => { if (action !== "upload") throw new Error("图片文件管理请使用原生安装版。"); const mapping = {}; for (const source of sources) { const file = await store.asset(id, source); const response = await fetch(options?.imageUploader || "http://127.0.0.1:36677/upload", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ list: [file] }), signal: AbortSignal.timeout(30000) }); const result = await response.json(); if (!response.ok || !result.success || !/^https?:\/\//.test(result.result?.[0] || "")) throw new Error("PicGo 未返回有效图片地址。"); mapping[source] = result.result[0]; } return mapping; },
-  ready: async () => { rendererReady = true; for (const file of pending.splice(0)) {
-    try { send({ action: "opened", document: await store.open(file) }); }
-    catch (error) { showError(error); }
-  } return true; },
+  openPath: async (_, targetPath) => {
+    const targetStat = await stat(targetPath);
+    if (targetStat.isDirectory()) {
+      const scanned = await store.scan(targetPath);
+      await workspace.remember(targetPath, true);
+      return { type: "folder", folder: scanned.folder, files: scanned.files };
+    } else {
+      const document = await store.open(targetPath);
+      await workspace.remember(targetPath, false);
+      return { type: "file", document };
+    }
+  },
+  ready: async () => {
+    rendererReady = true;
+    for (const file of pending.splice(0)) {
+      void openTarget(file);
+    }
+    return true;
+  },
   cancelClose: () => { closing = false; },
   recent: () => workspace.recent(),
   recentAction: async (_, action, file) => { if (action !== "open") return workspace.recentAction(action, file); const item = (await workspace.recent()).find(item => item.path === file); if (!item) throw new Error("最近项目已移除。"); await workspace.remember(file, item.folder); return item.folder ? store.scan(file) : store.open(file); },

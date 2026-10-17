@@ -91,6 +91,45 @@ export default function App() {
     for (const definition of pluginDefinitions) void pluginRuntime.current?.setEnabled(definition, !!pluginPreferences[definition.id]?.enabled);
   }, [pluginDefinitions, pluginPreferences, session.ready, !!active]);
   useEffect(() => { pluginRuntime.current?.documentChanged(); }, [active?.id, active?.content]);
+  useEffect(() => {
+    const handleDragOver = (e: DragEvent) => {
+      e.preventDefault();
+      if (e.dataTransfer) e.dataTransfer.dropEffect = "copy";
+    };
+    const handleDrop = async (e: DragEvent) => {
+      const files = e.dataTransfer?.files;
+      if (!files || files.length === 0) return;
+      const hasOnlyImages = [...files].every((f) => f.type.startsWith("image/"));
+      if (hasOnlyImages) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      for (const file of files) {
+        const filePath = (file as any).path;
+        if (filePath && host.openPath) {
+          try {
+            const res = await host.openPath(filePath);
+            if (res?.type === "folder") {
+              session.setFolder(res.folder);
+              session.setFiles(res.files);
+              session.setMessage(`已打开工作区：${res.folder}`);
+            } else if (res?.type === "file" && res.document) {
+              await session.add(res.document);
+            }
+          } catch (err) {
+            session.setMessage((err as Error).message);
+          }
+        }
+      }
+    };
+    window.addEventListener("dragover", handleDragOver);
+    window.addEventListener("drop", handleDrop);
+    return () => {
+      window.removeEventListener("dragover", handleDragOver);
+      window.removeEventListener("drop", handleDrop);
+    };
+  }, [session]);
   async function installPlugin() { const installed = await host.installPlugin(); if (installed) setInstalledPlugins(previous => [...previous.filter(item => item.id !== installed.id), { ...installed, description: "本地单文件插件，通过兼容接口运行。", config: {} }]); }
   async function removePlugin(id: string) {
     const definition = pluginDefinitions.find(item => item.id === id); if (!definition || definition.builtin) return;
@@ -169,7 +208,7 @@ export default function App() {
   useEffect(() => {
     editor()?.focus();
   }, [session.activeId]);
-  commands.current = ({ action, document: opened, anchor, line, message }) => {
+  commands.current = ({ action, document: opened, anchor, line, message, folder, files }: any) => {
     if (["new", "newWindow", "newTab", "open"].includes(action) && window.desktop?.windowAction) { void host.windowAction(action).catch((error: Error) => session.setMessage(error.message)); return; }
     const context = commandsByAction.get(action)?.context;
     if (readOnly && ((context && context !== "document") || ["undo", "redo", "paste-plain", "image", "table", "link", "reference-link", "footnote", "copy-all-images", "move-all-images", "upload-all-images"].includes(action))) { session.setMessage("只读模式已开启，请先在插件管理中关闭或切换只读效果。"); return; }
@@ -178,6 +217,12 @@ export default function App() {
     if (action === "notice") { if (message) session.setMessage(message); }
     else if (action === "opened") {
       if (opened) void session.add(opened).then(record => { if (record && (anchor || line)) requestAnimationFrame(() => { const heading = anchor ? extractHeadings(record.content).find(heading => heading.id === anchor || heading.text === anchor) : undefined; editors.current.get(record.id)?.jump(line || heading?.line || 1); }); });
+    } else if (action === "opened-folder") {
+      if (folder) {
+        session.setFolder(folder);
+        if (files) session.setFiles(files);
+        else void session.refresh();
+      }
     } else if (["new", "newWindow", "newTab"].includes(action)) void session.create();
     else if (action === "open") void session.open();
     else if (action === "folder") void session.openFolder();
@@ -316,6 +361,49 @@ export default function App() {
         toggleTheme={() => setTheme(theme === "dark" ? "light" : "dark")}
       />
       <main className={`writing-area ${background ? "has-background" : ""}`} aria-label="写作空间" inert={session.fileOperationBusy}>
+        {session.documents.length > 0 && (
+          <div className="document-tabs-bar" role="tablist" aria-label="已打开文档">
+            <div className="document-tabs-scroll">
+              {session.documents.map((record) => {
+                const isCurrent = record.id === session.activeId;
+                const isDirty = record.content !== record.savedContent;
+                return (
+                  <div
+                    key={record.id}
+                    className={`doc-tab-item ${isCurrent ? "active" : ""}`}
+                    role="tab"
+                    aria-selected={isCurrent}
+                    onClick={() => session.setActiveId(record.id)}
+                    onAuxClick={(e) => {
+                      if (e.button === 1) void session.close(record.id);
+                    }}
+                    title={record.path || record.name}
+                  >
+                    <span className="doc-tab-name">{record.name}</span>
+                    {isDirty && <span className="doc-tab-dot" title="未保存修改">●</span>}
+                    <button
+                      className="doc-tab-close"
+                      title="关闭文档"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void session.close(record.id);
+                      }}
+                    >
+                      <X size={12} />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+            <button
+              className="doc-tab-new"
+              title="新建草稿 (Ctrl+N)"
+              onClick={() => void session.create()}
+            >
+              <FilePlus2 size={14} />
+            </button>
+          </div>
+        )}
         {background && <div className="background-image editor-background" data-editor-background="true" aria-hidden="true" style={backgroundStyle(background,preferences)} />}
         {active?.conflict && (
           <div className="conflict-banner" role="alert">

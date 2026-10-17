@@ -71,6 +71,7 @@ export interface Host {
   restore(): Promise<Recovery | null>;
   registerDraft(record: DocumentRecord): Promise<unknown>;
   open(): Promise<DocumentRecord | null>;
+  openPath?(path: string): Promise<{ type: "file"; document: DocumentRecord } | { type: "folder"; folder: string; files: FileEntry[] } | null>;
   openFolder(): Promise<FolderResult | null>;
   scan(): Promise<FolderResult>;
   fileOperation(operation: FileOperation): Promise<PathChange | null>;

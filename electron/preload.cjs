@@ -15,6 +15,7 @@ contextBridge.exposeInMainWorld("desktop", {
   restore: () => call("restore"),
   registerDraft: (record) => call("draft", record),
   open: () => call("open"),
+  openPath: (path) => call("openPath", path),
   openFolder: () => call("folder"),
   scan: () => call("scan"),
   openToken: (token) => call("token", token),
