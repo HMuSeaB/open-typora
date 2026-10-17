@@ -1249,3 +1249,437 @@ svg {
   color: var(--ink);
   background-color: var(--border);
 }
+
+/* ========================================================
+   现代侧边栏、文件树与文档大纲重构系统 (Modern Shell UI)
+   ======================================================== */
+:root {
+  --active-item-bg: rgba(65, 131, 196, 0.12);
+  --hover-item-bg: rgba(0, 0, 0, 0.04);
+}
+:root[data-appearance="dark"] {
+  --active-item-bg: rgba(138, 179, 215, 0.16);
+  --hover-item-bg: rgba(255, 255, 255, 0.05);
+}
+
+.modern-sidebar {
+  user-select: none;
+}
+
+.sidebar-switcher {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  transition: opacity 0.15s;
+}
+
+.sidebar-switcher:hover {
+  opacity: 0.85;
+}
+
+.switcher-arrow {
+  transition: transform 0.2s ease;
+}
+
+.switcher-arrow.open {
+  transform: rotate(180deg);
+}
+
+/* 下拉菜单通用精致样式 (Modern Dropdown) */
+.modern-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 12px;
+  min-width: 140px;
+  background: var(--paper);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  padding: 5px;
+  z-index: 100;
+  animation: dropdownFadeIn 0.15s ease-out;
+}
+
+@keyframes dropdownFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.modern-dropdown .menu-option {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  font-size: 12px;
+  border-radius: 4px;
+  color: var(--ink);
+  transition: all 0.1s;
+}
+
+.modern-dropdown .menu-option:hover {
+  background: var(--hover-item-bg);
+}
+
+.modern-dropdown .menu-option.active {
+  background: var(--active-item-bg);
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.dropdown-section-title {
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0;
+}
+
+.checkbox-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--ink);
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.checkbox-menu-item:hover {
+  background: var(--hover-item-bg);
+}
+
+.sort-menu-container {
+  position: relative;
+}
+
+.sort-dropdown {
+  right: 0;
+  left: auto;
+  min-width: 150px;
+}
+
+/* 侧边栏标题与操作栏 */
+.sidebar-section-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 12px 6px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.section-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 140px;
+}
+
+.section-tools {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.section-tools .icon-button {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  transition: all 0.15s;
+}
+
+.section-tools .icon-button:hover,
+.section-tools .icon-button.active {
+  color: var(--ink);
+  background: var(--hover-item-bg);
+}
+
+/* 现代文件行 (Modern File Rows & Trees) */
+.sidebar-nav-container {
+  padding: 4px 8px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modern-file-row {
+  display: flex;
+  align-items: center;
+  height: 30px;
+  margin: 1px 0;
+  border-radius: 5px;
+  position: relative;
+  transition: background-color 0.12s ease;
+}
+
+.modern-file-row:hover {
+  background-color: var(--hover-item-bg);
+}
+
+/* 唯一激活状态：柔和半透明背景 + 左侧 Accent 竖条，彻底淘汰生硬纯蓝 */
+.modern-file-row.active-row,
+.file-row.selected,
+.tree-entry.selected,
+.tree-entry.active-row {
+  background-color: var(--active-item-bg) !important;
+  color: var(--ink) !important;
+  font-weight: 500;
+}
+
+.modern-file-row.active-row::before,
+.tree-entry.selected::before,
+.tree-entry.active-row::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 5px;
+  bottom: 5px;
+  width: 3px;
+  background-color: var(--accent);
+  border-radius: 2px;
+}
+
+.modern-file-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  height: 100%;
+  padding: 0 10px;
+  font-size: 13px;
+  text-align: left;
+}
+
+.file-icon {
+  flex-shrink: 0;
+  color: var(--muted);
+  opacity: 0.8;
+}
+
+.folder-icon {
+  flex-shrink: 0;
+  color: var(--accent);
+  opacity: 0.9;
+}
+
+.tree-chevron {
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: transform 0.15s ease;
+  margin-right: 2px;
+}
+
+.tree-chevron-open {
+  transform: rotate(90deg);
+}
+
+.file-label,
+.tree-file-name {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dirty-indicator {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: var(--accent);
+  flex-shrink: 0;
+}
+
+.file-close-btn {
+  opacity: 0;
+  width: 22px;
+  height: 22px;
+  margin-right: 4px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  transition: all 0.1s;
+}
+
+.modern-file-row:hover .file-close-btn {
+  opacity: 0.7;
+}
+
+.file-close-btn:hover {
+  opacity: 1 !important;
+  background-color: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+/* 草稿分组 */
+.sidebar-drafts-group {
+  margin-bottom: 8px;
+}
+
+.sidebar-group-header {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+  padding: 4px 10px;
+  opacity: 0.8;
+}
+
+.sidebar-group-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 6px 8px 8px;
+  opacity: 0.6;
+}
+
+/* 侧边栏空状态 */
+.sidebar-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 16px;
+  text-align: center;
+  color: var(--muted);
+}
+
+.empty-icon {
+  opacity: 0.35;
+  margin-bottom: 12px;
+}
+
+.sidebar-empty-state p {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+
+.sidebar-empty-state small {
+  font-size: 11px;
+  opacity: 0.7;
+}
+
+.empty-action-btn {
+  margin-top: 14px;
+  padding: 6px 14px;
+  font-size: 12px;
+  border-radius: 4px;
+  background: var(--active-item-bg);
+  color: var(--accent);
+  font-weight: 500;
+  transition: opacity 0.15s;
+}
+
+.empty-action-btn:hover {
+  opacity: 0.8;
+}
+
+/* 现代文档大纲树 (Modern Outline Tree) */
+.modern-outline-container {
+  padding: 6px 8px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.outline-tree {
+  position: relative;
+}
+
+.outline-node {
+  position: relative;
+  margin: 2px 0;
+  border-radius: 4px;
+  transition: background-color 0.12s ease;
+}
+
+/* 大纲层级引导虚线 (Tree Guide Lines) */
+.outline-node::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--border);
+  opacity: 0.5;
+}
+
+.outline-node.level-1::before {
+  display: none;
+}
+
+.outline-node:hover {
+  background-color: var(--hover-item-bg);
+}
+
+.outline-node.active {
+  background-color: var(--active-item-bg);
+}
+
+.outline-node.active .outline-text {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.outline-item-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 12.5px;
+  text-align: left;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+/* 标题级别徽标 (H1~H6 Tags) */
+.outline-level-tag {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 14px;
+  font-size: 9.5px;
+  font-weight: 700;
+  border-radius: 3px;
+  color: var(--muted);
+  background: var(--border);
+  opacity: 0.75;
+  flex-shrink: 0;
+  letter-spacing: -0.2px;
+}
+
+.outline-node.level-1 .outline-level-tag {
+  background: var(--accent);
+  color: #fff;
+  opacity: 0.9;
+}
+
+.outline-node.active .outline-level-tag {
+  background: var(--accent);
+  color: #fff;
+  opacity: 1;
+}
+
+.outline-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

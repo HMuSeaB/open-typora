@@ -80,6 +80,7 @@ export interface Host {
   recentAction(action: string, path?: string): Promise<FolderResult | DocumentRecord | RecentEntry[] | null>;
   searchFiles(query: string, options: { regex: boolean; caseSensitive: boolean }): Promise<SearchResult>;
   reveal(path: string): Promise<unknown>;
+  showContextMenu?(options: { hasFile: boolean; isDirectory: boolean; x?: number; y?: number }): Promise<string | null>;
   openToken(token: string): Promise<DocumentRecord>;
   reopen(id: string): Promise<DocumentRecord>;
   chooseImage(id: string, options?: Record<string, unknown>): Promise<{ path: string; alt: string } | null>;

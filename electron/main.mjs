@@ -145,6 +145,53 @@ const handlers = {
   recentAction: async (_, action, file) => { if (action !== "open") return workspace.recentAction(action, file); const item = (await workspace.recent()).find(item => item.path === file); if (!item) throw new Error("最近项目已移除。"); await workspace.remember(file, item.folder); return item.folder ? store.scan(file) : store.open(file); },
   searchFiles: async (_, query, options) => workspace.search((await store.scan()).files, query, { ...options, encodings: Object.fromEntries([...store.records.values()].filter(record => record.path).map(record => [record.path, record.encoding])) }),
   reveal: async (_, file) => shell.showItemInFolder(await workspace.authorize(file, store)),
+  showContextMenu: async (_, options) => {
+    return new Promise((resolve) => {
+      let settled = false;
+      const done = (action) => {
+        if (!settled) {
+          settled = true;
+          resolve(action);
+        }
+      };
+      const { hasFile, isDirectory, x, y } = options || {};
+      const isWin = process.platform === "win32";
+      const template = [
+        { label: "新建文件…", click: () => done("new-file") },
+        { label: "新建文件夹…", click: () => done("new-folder") },
+      ];
+      if (hasFile) {
+        template.push({ type: "separator" });
+        if (!isDirectory) {
+          template.push({ label: "创建副本…", click: () => done("duplicate") });
+        }
+        template.push(
+          { label: "重命名…", click: () => done("rename") },
+          { label: "移动到…", click: () => done("move") },
+          { label: "移到废纸篓", click: () => done("trash") },
+          { type: "separator" },
+          { label: "复制路径", click: () => done("copy-path") },
+          {
+            label: isWin ? "在文件资源管理器中显示" : "在访达中显示",
+            click: () => done("reveal"),
+          }
+        );
+      }
+      template.push(
+        { type: "separator" },
+        { label: "撤销上次文件操作", click: () => done("undo") }
+      );
+      const contextMenu = Menu.buildFromTemplate(template);
+      contextMenu.popup({
+        window,
+        x: typeof x === "number" ? Math.round(x) : undefined,
+        y: typeof y === "number" ? Math.round(y) : undefined,
+        callback: () => {
+          setTimeout(() => done(null), 150);
+        },
+      });
+    });
+  },
   fileOperation: async (_, operation) => {
     if (operationRunning) throw new Error("另一个文件操作正在进行。"); operationRunning = true;
     try {

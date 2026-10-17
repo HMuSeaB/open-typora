@@ -81,6 +81,7 @@ const browser: Host = {
   async recentAction() { return null; },
   async searchFiles() { return { matches: [], truncated: false, skipped: 0 }; },
   async reveal() {},
+  async showContextMenu() { return null; },
   async scan() {
     return { folder: null, files: [], truncated: false };
   },
