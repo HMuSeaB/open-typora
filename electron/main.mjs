@@ -154,8 +154,35 @@ const handlers = {
           resolve(action);
         }
       };
-      const { hasFile, isDirectory, x, y } = options || {};
+      const { hasFile, isDirectory, hasPath, type, x, y } = options || {};
       const isWin = process.platform === "win32";
+      if (type === "tab") {
+        const tabTemplate = [
+          { label: "关闭标签页", click: () => done("close") },
+          { label: "关闭其他标签页", click: () => done("close-others") },
+          { label: "关闭已保存标签页", click: () => done("close-saved") },
+        ];
+        if (hasPath) {
+          tabTemplate.push(
+            { type: "separator" },
+            { label: "复制路径", click: () => done("copy-path") },
+            {
+              label: isWin ? "在文件资源管理器中显示" : "在访达中显示",
+              click: () => done("reveal"),
+            }
+          );
+        }
+        const contextMenu = Menu.buildFromTemplate(tabTemplate);
+        contextMenu.popup({
+          window,
+          x: typeof x === "number" ? Math.round(x) : undefined,
+          y: typeof y === "number" ? Math.round(y) : undefined,
+          callback: () => {
+            setTimeout(() => done(null), 150);
+          },
+        });
+        return;
+      }
       const template = [
         { label: "新建文件…", click: () => done("new-file") },
         { label: "新建文件夹…", click: () => done("new-folder") },

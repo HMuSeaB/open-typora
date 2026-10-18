@@ -341,6 +341,84 @@ export function useDocuments(canPrepare: () => boolean = () => true) {
     } catch (error) { notify(error); }
     finally { closing.current = false; setDocuments(records => [...records]); }
   }
+  async function closeOthers(keepId = current.current.activeId) {
+    if (!prepareEditor.current()) { setMessage("请先完成当前输入法组合输入，再关闭其他文档。"); return; }
+    if (closing.current) return;
+    closing.current = true;
+    try {
+      await Promise.allSettled([...inFlight.current.values()]);
+      const targetDocs = current.current.documents.filter(doc => doc.id !== keepId);
+      const remaining: DocumentRecord[] = [];
+      const keepDoc = current.current.documents.find(doc => doc.id === keepId);
+      if (keepDoc) remaining.push(keepDoc);
+
+      for (const record of targetDocs) {
+        if (record.content === record.savedContent) {
+          closed.current = [...closed.current.filter(item => item.id !== record.id), { id: record.id, name: record.name }].slice(-20);
+          continue;
+        }
+        const decision = await host.confirmClose(record.name);
+        if (decision === "cancel") {
+          remaining.push(record);
+          continue;
+        }
+        if (decision === "save") {
+          const saved = await host.save(record.id, record.content);
+          if (saved) {
+            closed.current = [...closed.current.filter(item => item.id !== record.id), { id: record.id, name: record.name }].slice(-20);
+          } else {
+            remaining.push(record);
+          }
+        } else {
+          closed.current = [...closed.current.filter(item => item.id !== record.id), { id: record.id, name: record.name }].slice(-20);
+        }
+      }
+
+      await host.persist({
+        documents: remaining,
+        activeId: keepId,
+      });
+      setDocuments(remaining);
+      setActiveId(keepId);
+    } catch (error) {
+      notify(error);
+    } finally {
+      closing.current = false;
+      setDocuments(records => [...records]);
+    }
+  }
+  async function closeSaved() {
+    if (!prepareEditor.current()) { setMessage("请先完成当前输入法组合输入，再关闭已保存文档。"); return; }
+    if (closing.current) return;
+    closing.current = true;
+    try {
+      await Promise.allSettled([...inFlight.current.values()]);
+      const remaining = current.current.documents.filter(doc => {
+        const isSaved = doc.content === doc.savedContent;
+        if (isSaved) {
+          closed.current = [...closed.current.filter(item => item.id !== doc.id), { id: doc.id, name: doc.name }].slice(-20);
+          return false;
+        }
+        return true;
+      });
+
+      const nextActiveId = remaining.some(doc => doc.id === current.current.activeId)
+        ? current.current.activeId
+        : remaining[0]?.id || "";
+
+      await host.persist({
+        documents: remaining,
+        activeId: nextActiveId,
+      });
+      setDocuments(remaining);
+      setActiveId(nextActiveId);
+    } catch (error) {
+      notify(error);
+    } finally {
+      closing.current = false;
+      setDocuments(records => [...records]);
+    }
+  }
   async function reopen() {
     const item = closed.current.at(-1);
     if (!item) { setMessage("没有最近关闭的文档。"); return; }
@@ -464,6 +542,8 @@ export function useDocuments(canPrepare: () => boolean = () => true) {
     openToken,
     refresh,
     close,
+    closeOthers,
+    closeSaved,
     reopen,
     reload,
     changeEncoding,

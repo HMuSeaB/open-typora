@@ -26,6 +26,7 @@ import { shortcutLabel } from "../commands";
 
 interface Props {
   documents: DocumentRecord[];
+  activeHeadingLine?: number | null;
   activeId: string;
   files: FileEntry[];
   folder: string | null;
@@ -53,10 +54,23 @@ export function Sidebar(props: Props) {
   const [foldersFirst, setFoldersFirst] = useState(() => localStorage.getItem("open-typora-folders-first") !== "false");
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [switcher, setSwitcher] = useState(false);
-  const [activeHeadingLine, setActiveHeadingLine] = useState<number | null>(null);
+  const [clickedHeadingLine, setClickedHeadingLine] = useState<number | null>(null);
 
+  const activeNodeRef = useRef<HTMLDivElement | null>(null);
   const headingRef = useRef<HTMLDivElement>(null);
   const sortMenuRef = useRef<HTMLDivElement>(null);
+
+  const currentActiveLine = clickedHeadingLine ?? props.activeHeadingLine;
+
+  useEffect(() => {
+    setClickedHeadingLine(null);
+  }, [props.activeHeadingLine]);
+
+  useEffect(() => {
+    if (props.tab === "outline" && activeNodeRef.current) {
+      activeNodeRef.current.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }
+  }, [currentActiveLine, props.tab]);
 
   const sortedFiles = useMemo(
     () => sortFiles(props.files.filter(file => file.isDirectory !== "true"), sort, descending, foldersFirst),
@@ -152,7 +166,7 @@ export function Sidebar(props: Props) {
   };
 
   const handleHeadingClick = (line: number) => {
-    setActiveHeadingLine(line);
+    setClickedHeadingLine(line);
     props.jump(line);
   };
 
@@ -434,10 +448,11 @@ export function Sidebar(props: Props) {
             {props.headings.length ? (
               <div className="outline-tree">
                 {props.headings.map((heading, index) => {
-                  const isActive = activeHeadingLine === heading.line;
+                  const isActive = currentActiveLine === heading.line;
                   return (
                     <div
                       key={`${heading.line}-${index}`}
+                      ref={isActive ? activeNodeRef : undefined}
                       className={`outline-node level-${heading.level} ${isActive ? "active" : ""}`}
                       style={{ paddingLeft: `${Math.max(6, (heading.level - 1) * 14 + 8)}px` }}
                     >

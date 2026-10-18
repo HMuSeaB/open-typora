@@ -62,6 +62,8 @@ export default function App() {
     );
   const [cursor, setCursor] = useState({ line: 1, column: 1 }),
     [about, setAbout] = useState(false);
+  const [activeHeadingLine, setActiveHeadingLine] = useState<number | null>(null);
+  const scrollRaf = useRef<number | null>(null);
   const editor = () => editors.current.get(session.activeId);
   const printDocument = useRef<HTMLElement>(null);
   const commands = useRef<(command: Command) => void>(() => {});
@@ -141,6 +143,60 @@ export default function App() {
     () => extractHeadings(active?.content || ""),
     [active?.content, preferences],
   );
+  useEffect(() => {
+    const handleScroll = (e: Event) => {
+      const target = e.target as HTMLElement | null;
+      if (!target || !target.classList) return;
+      if (!target.classList.contains("rich-scroller") && !target.classList.contains("cm-scroller")) return;
+
+      if (scrollRaf.current !== null) return;
+      scrollRaf.current = requestAnimationFrame(() => {
+        scrollRaf.current = null;
+        if (!headings.length) {
+          setActiveHeadingLine(null);
+          return;
+        }
+
+        if (target.classList.contains("rich-scroller")) {
+          const headingEls = Array.from(target.querySelectorAll<HTMLElement>("h1, h2, h3, h4, h5, h6"));
+          if (!headingEls.length) return;
+          const containerTop = target.getBoundingClientRect().top;
+          let matchedIndex = -1;
+
+          for (let i = 0; i < headingEls.length; i++) {
+            const rect = headingEls[i].getBoundingClientRect();
+            if (rect.top - containerTop <= 70) {
+              matchedIndex = i;
+            } else {
+              break;
+            }
+          }
+
+          if (matchedIndex >= 0 && matchedIndex < headings.length) {
+            setActiveHeadingLine(headings[matchedIndex].line);
+          } else if (matchedIndex === -1 && headingEls.length > 0) {
+            setActiveHeadingLine(headings[0]?.line ?? null);
+          }
+        }
+      });
+    };
+
+    document.addEventListener("scroll", handleScroll, true);
+    return () => {
+      document.removeEventListener("scroll", handleScroll, true);
+      if (scrollRaf.current !== null) cancelAnimationFrame(scrollRaf.current);
+    };
+  }, [headings, session.activeId]);
+  useEffect(() => {
+    if (!headings.length) {
+      setActiveHeadingLine(null);
+      return;
+    }
+    const matched = headings.filter(h => h.line <= cursor.line).at(-1);
+    if (matched) {
+      setActiveHeadingLine(matched.line);
+    }
+  }, [cursor.line, headings]);
   const characters = useMemo(
     () => Array.from((active?.content || "").replace(/\s/g, "")).length,
     [active?.content],
@@ -296,8 +352,23 @@ export default function App() {
         setFocus(false);
         setAbout(false);
       }
+      // 循环切换标签页：Ctrl+Tab (向右) / Ctrl+Shift+Tab (向左)
+      if (event.ctrlKey && !event.altKey && !event.metaKey && event.key === "Tab") {
+        event.preventDefault();
+        event.stopPropagation();
+        const docs = session.documents;
+        if (docs.length > 1) {
+          const currentIndex = docs.findIndex((d) => d.id === session.activeId);
+          if (currentIndex !== -1) {
+            const step = event.shiftKey ? -1 : 1;
+            const nextIndex = (currentIndex + step + docs.length) % docs.length;
+            session.setActiveId(docs[nextIndex].id);
+          }
+        }
+        return;
+      }
       const action = commandForKey(event);
-      if (host.native && ["new", "newWindow", "newTab", "open", "save", "saveAs", "close-window"].includes(action || "")) return;
+      if (host.native && ["new", "newWindow", "newTab", "open", "save", "saveAs", "close", "close-window"].includes(action || "")) return;
       if (action) {
         event.preventDefault();
         event.stopPropagation();
@@ -325,6 +396,30 @@ export default function App() {
         : active?.path
           ? "已保存"
           : "本地草稿";
+  const handleTabContextMenu = async (e: React.MouseEvent, record: (typeof session.documents)[number]) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!host.showContextMenu) return;
+    const action = await host.showContextMenu({
+      type: "tab",
+      hasPath: Boolean(record.path),
+      x: e.clientX,
+      y: e.clientY,
+    });
+    if (!action) return;
+    if (action === "close") {
+      void session.close(record.id);
+    } else if (action === "close-others") {
+      void session.closeOthers(record.id);
+    } else if (action === "close-saved") {
+      void session.closeSaved();
+    } else if (action === "copy-path" && record.path) {
+      await host.writeClipboard(record.path);
+      session.setMessage("已复制文件路径至剪贴板");
+    } else if (action === "reveal" && record.path) {
+      await host.reveal(record.path).catch(err => session.setMessage((err as Error).message));
+    }
+  };
   return (
     <div
       className={`app-shell ${sidebar ? "" : "sidebar-hidden"} ${focus ? "focus-mode" : ""} ${typewriter ? "typewriter-mode" : ""}`}
@@ -348,6 +443,7 @@ export default function App() {
         files={session.files}
         folder={session.folder}
         headings={headings}
+        activeHeadingLine={activeHeadingLine}
         tab={tab}
         setTab={setTab}
         select={session.setActiveId}
@@ -374,6 +470,7 @@ export default function App() {
                     role="tab"
                     aria-selected={isCurrent}
                     onClick={() => session.setActiveId(record.id)}
+                    onContextMenu={(e) => void handleTabContextMenu(e, record)}
                     onAuxClick={(e) => {
                       if (e.button === 1) void session.close(record.id);
                     }}
