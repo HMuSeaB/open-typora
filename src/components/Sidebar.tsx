@@ -14,6 +14,7 @@ import {
   Hash,
   Folder,
   FileCode,
+  FolderTree,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DocumentRecord, FileEntry, FileOperation } from "../types";
@@ -173,19 +174,26 @@ export function Sidebar(props: Props) {
         </button>
 
         {switcher && (
-          <div className="sidebar-menu modern-dropdown" role="menu">
-            {(["tree", "files", "outline"] as const).map((tab) => (
+          <div className="sidebar-menu modern-dropdown switcher-dropdown" role="menu">
+            {(
+              [
+                ["tree", "文件树", FolderTree],
+                ["files", "文件列表", FileText],
+                ["outline", "文档大纲", Hash],
+              ] as const
+            ).map(([tab, label, Icon]) => (
               <button
                 role="menuitemradio"
                 aria-checked={tab === props.tab}
                 key={tab}
-                className={`menu-option ${tab === props.tab ? "active" : ""}`}
+                className={`menu-option switcher-option ${tab === props.tab ? "active" : ""}`}
                 onClick={() => {
                   props.setTab(tab);
                   setSwitcher(false);
                 }}
               >
-                {tab === "tree" ? "文件树" : tab === "files" ? "文件列表" : "文档大纲"}
+                <Icon size={14} className="switcher-icon" />
+                <span>{label}</span>
               </button>
             ))}
           </div>

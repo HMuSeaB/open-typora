@@ -174,30 +174,7 @@ svg {
 .sidebar-switcher:focus-visible svg {
   opacity: 0.6;
 }
-.sidebar-menu {
-  position: absolute;
-  top: 25px;
-  left: 50%;
-  transform: translateX(-50%);
-  min-width: 120px;
-  padding: 5px;
-  background: var(--paper);
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  box-shadow: 0 4px 12px #0002;
-  z-index: 35;
-}
-.sidebar-menu button {
-  display: block;
-  width: 100%;
-  font-size: 13px;
-  padding: 5px 10px;
-  text-align: left;
-  border-radius: 3px;
-}
-.sidebar-menu [aria-checked="true"] {
-  background: var(--selected);
-}
+
 .sidebar-body {
   flex: 1;
   overflow: auto;
@@ -1289,21 +1266,53 @@ svg {
 /* 下拉菜单通用精致样式 (Modern Dropdown) */
 .modern-dropdown {
   position: absolute;
-  top: 100%;
-  left: 12px;
   min-width: 140px;
   background: var(--paper);
   border: 1px solid var(--border);
   border-radius: 6px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
   padding: 5px;
   z-index: 100;
-  animation: dropdownFadeIn 0.15s ease-out;
+}
+
+/* 顶部模式切换下拉菜单：严格水平居中对齐在标题下方，消除左偏遮挡 */
+.switcher-dropdown {
+  top: calc(100% + 4px) !important;
+  left: 50% !important;
+  right: auto !important;
+  transform: translateX(-50%) !important;
+  min-width: 150px;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+  animation: dropdownFadeCenter 0.15s ease-out;
+}
+
+@keyframes dropdownFadeCenter {
+  from { opacity: 0; transform: translate(-50%, -6px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
 }
 
 @keyframes dropdownFadeIn {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+.switcher-option {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px !important;
+  font-size: 13px !important;
+}
+
+.switcher-icon {
+  flex-shrink: 0;
+  color: var(--muted);
+  opacity: 0.85;
+}
+
+.switcher-option.active .switcher-icon {
+  color: var(--accent);
+  opacity: 1;
 }
 
 .modern-dropdown .menu-option {
@@ -1362,9 +1371,11 @@ svg {
 }
 
 .sort-dropdown {
+  top: 100%;
   right: 0;
   left: auto;
   min-width: 150px;
+  animation: dropdownFadeIn 0.15s ease-out;
 }
 
 /* 侧边栏标题与操作栏 */
