@@ -21,6 +21,7 @@ import { launchFiles } from "./launch-files.mjs";
 import { plugins, installPlugin } from "./plugins.mjs";
 import { pluginResource } from "./resources.mjs";
 import { readBackground, saveBackground, clearBackground } from "./background.mjs";
+import { suggestMarkdownName } from "./suggest-name.mjs";
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const development = process.env.OPEN_TYPORA_DEV_URL;
 if (process.env.OPEN_TYPORA_DATA_DIR)
@@ -290,9 +291,18 @@ const handlers = {
     const record = store.require(id);
     let destination;
     if (!record.path || saveAs) {
+      const suggestedName = suggestMarkdownName(text, record.name);
+      let defaultPath;
+      if (record.path) {
+        defaultPath = saveAs ? path.join(path.dirname(record.path), suggestedName) : record.path;
+      } else if (store.folder) {
+        defaultPath = path.join(store.folder, suggestedName);
+      } else {
+        defaultPath = suggestedName;
+      }
       const result = await dialog.showSaveDialog(window, {
         title: "保存 Markdown 文件",
-        defaultPath: record.path ?? record.name,
+        defaultPath,
         filters: [{ name: "Markdown", extensions: ["md"] }],
       });
       if (result.canceled) return null;
