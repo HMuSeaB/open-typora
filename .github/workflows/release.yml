@@ -52,7 +52,7 @@ jobs:
           retention-days: 30
 
       - name: Publish or Update GitHub Release
-        if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/') || inputs.publish_release == true
+        if: startsWith(github.ref, 'refs/tags/') || inputs.publish_release == true
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
@@ -140,5 +140,5 @@ jobs:
             echo "Creating new release $TAG..."
             gh release create "$TAG" release/windows/*-Setup.exe release/windows/*.zip release/windows/SHA256SUMS-windows-x64.txt \
               --title "$TITLE" \
-              --notes "$NOTES"
+              --notes "$NOTES" || gh release upload "$TAG" release/windows/*-Setup.exe release/windows/*.zip release/windows/SHA256SUMS-windows-x64.txt --clobber
           fi
