@@ -7,6 +7,7 @@ import {
   Sun,
   X,
   ChevronDown,
+  ChevronRight,
   MoreHorizontal,
   Search,
   History,
@@ -53,14 +54,53 @@ export function Sidebar(props: Props) {
   const [descending, setDescending] = useState(() => localStorage.getItem("open-typora-file-desc") === "true");
   const [foldersFirst, setFoldersFirst] = useState(() => localStorage.getItem("open-typora-folders-first") !== "false");
   const [showSortMenu, setShowSortMenu] = useState(false);
-  const [switcher, setSwitcher] = useState(false);
   const [clickedHeadingLine, setClickedHeadingLine] = useState<number | null>(null);
+  const [collapsedLines, setCollapsedLines] = useState<Set<number>>(new Set());
 
   const activeNodeRef = useRef<HTMLDivElement | null>(null);
-  const headingRef = useRef<HTMLDivElement>(null);
   const sortMenuRef = useRef<HTMLDivElement>(null);
 
   const currentActiveLine = clickedHeadingLine ?? props.activeHeadingLine;
+
+  const toggleCollapse = (line: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setCollapsedLines((prev) => {
+      const next = new Set(prev);
+      if (next.has(line)) next.delete(line);
+      else next.add(line);
+      return next;
+    });
+  };
+
+  const headingsWithMeta = useMemo(() => {
+    return props.headings.map((h, i) => {
+      const next = props.headings[i + 1];
+      const hasChildren = Boolean(next && next.level > h.level);
+      return { ...h, hasChildren };
+    });
+  }, [props.headings]);
+
+  const visibleHeadings = useMemo(() => {
+    const result: { heading: (typeof headingsWithMeta)[number]; hasChildren: boolean }[] = [];
+    let collapsedLevel: number | null = null;
+
+    for (const item of headingsWithMeta) {
+      if (collapsedLevel !== null) {
+        if (item.level > collapsedLevel) {
+          continue;
+        } else {
+          collapsedLevel = null;
+        }
+      }
+
+      result.push({ heading: item, hasChildren: item.hasChildren });
+
+      if (collapsedLines.has(item.line) && item.hasChildren) {
+        collapsedLevel = item.level;
+      }
+    }
+    return result;
+  }, [headingsWithMeta, collapsedLines]);
 
   useEffect(() => {
     setClickedHeadingLine(null);
@@ -97,16 +137,12 @@ export function Sidebar(props: Props) {
   // 点击外部收起弹出菜单
   useEffect(() => {
     const handleDismiss = (event: MouseEvent) => {
-      if (headingRef.current && !headingRef.current.contains(event.target as Node)) {
-        setSwitcher(false);
-      }
       if (sortMenuRef.current && !sortMenuRef.current.contains(event.target as Node)) {
         setShowSortMenu(false);
       }
     };
     const handleKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setSwitcher(false);
         setShowSortMenu(false);
       }
     };
@@ -172,46 +208,38 @@ export function Sidebar(props: Props) {
 
   return (
     <aside className="sidebar modern-sidebar" aria-label="文档侧栏">
-      {/* 侧边栏顶部切换器 */}
-      <div className="sidebar-heading" ref={headingRef}>
+      {/* 侧边栏顶部平铺分段切换器 (Segmented Control) */}
+      <div className="sidebar-tab-segment" role="tablist" aria-label="侧边栏视图切换">
         <button
-          className="sidebar-switcher"
-          aria-label="切换侧栏内容"
-          aria-expanded={switcher}
-          aria-haspopup="menu"
-          onClick={() => setSwitcher(!switcher)}
+          role="tab"
+          aria-selected={props.tab === "outline"}
+          className={`tab-segment-btn ${props.tab === "outline" ? "active" : ""}`}
+          onClick={() => props.setTab("outline")}
+          title="文档大纲"
         >
-          <span className="sidebar-switcher-text">
-            {props.tab === "files" ? "文件列表" : props.tab === "tree" ? "文件树" : "文档大纲"}
-          </span>
-          <ChevronDown size={13} className={`switcher-arrow ${switcher ? "open" : ""}`} />
+          <Hash size={13} className="segment-icon" />
+          <span>大纲</span>
         </button>
-
-        {switcher && (
-          <div className="sidebar-menu modern-dropdown switcher-dropdown" role="menu">
-            {(
-              [
-                ["tree", "文件树", FolderTree],
-                ["files", "文件列表", FileText],
-                ["outline", "文档大纲", Hash],
-              ] as const
-            ).map(([tab, label, Icon]) => (
-              <button
-                role="menuitemradio"
-                aria-checked={tab === props.tab}
-                key={tab}
-                className={`menu-option switcher-option ${tab === props.tab ? "active" : ""}`}
-                onClick={() => {
-                  props.setTab(tab);
-                  setSwitcher(false);
-                }}
-              >
-                <Icon size={14} className="switcher-icon" />
-                <span>{label}</span>
-              </button>
-            ))}
-          </div>
-        )}
+        <button
+          role="tab"
+          aria-selected={props.tab === "tree"}
+          className={`tab-segment-btn ${props.tab === "tree" ? "active" : ""}`}
+          onClick={() => props.setTab("tree")}
+          title="文件树"
+        >
+          <FolderTree size={13} className="segment-icon" />
+          <span>文件树</span>
+        </button>
+        <button
+          role="tab"
+          aria-selected={props.tab === "files"}
+          className={`tab-segment-btn ${props.tab === "files" ? "active" : ""}`}
+          onClick={() => props.setTab("files")}
+          title="文件列表"
+        >
+          <FileText size={13} className="segment-icon" />
+          <span>列表</span>
+        </button>
       </div>
 
       <div className="sidebar-body">
@@ -443,27 +471,44 @@ export function Sidebar(props: Props) {
             </nav>
           </>
         ) : (
-          /* 文档大纲现代重构版 */
+          /* 文档大纲原版优雅重构版 */
           <nav className="modern-outline-container" aria-label="文档大纲">
             {props.headings.length ? (
               <div className="outline-tree">
-                {props.headings.map((heading, index) => {
+                {visibleHeadings.map(({ heading, hasChildren }, index) => {
                   const isActive = currentActiveLine === heading.line;
+                  const isCollapsed = collapsedLines.has(heading.line);
                   return (
                     <div
                       key={`${heading.line}-${index}`}
                       ref={isActive ? activeNodeRef : undefined}
                       className={`outline-node level-${heading.level} ${isActive ? "active" : ""}`}
-                      style={{ paddingLeft: `${Math.max(6, (heading.level - 1) * 14 + 8)}px` }}
+                      style={{ paddingLeft: `${Math.max(6, (heading.level - 1) * 14 + 6)}px` }}
                     >
-                      <button
-                        className="outline-item-btn"
-                        onClick={() => handleHeadingClick(heading.line)}
-                        title={heading.text}
-                      >
-                        <span className="outline-level-tag">H{heading.level}</span>
-                        <span className="outline-text">{heading.text}</span>
-                      </button>
+                      {isActive && <span className="outline-active-indicator" aria-hidden="true" />}
+                      <div className="outline-item-wrapper">
+                        {hasChildren ? (
+                          <button
+                            type="button"
+                            className={`outline-fold-btn ${isCollapsed ? "collapsed" : ""}`}
+                            onClick={(e) => toggleCollapse(heading.line, e)}
+                            title={isCollapsed ? "展开子章节" : "折叠子章节"}
+                            aria-label={isCollapsed ? "展开子章节" : "折叠子章节"}
+                          >
+                            <ChevronRight size={12} className="fold-arrow" />
+                          </button>
+                        ) : (
+                          <span className="outline-fold-placeholder" />
+                        )}
+                        <button
+                          type="button"
+                          className="outline-item-btn"
+                          onClick={() => handleHeadingClick(heading.line)}
+                          title={heading.text}
+                        >
+                          <span className="outline-text">{heading.text}</span>
+                        </button>
+                      </div>
                     </div>
                   );
                 })}

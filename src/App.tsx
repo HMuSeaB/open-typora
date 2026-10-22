@@ -56,7 +56,15 @@ export default function App() {
   const [rendered, setRendered] = useState(true),
     [sidebar, setSidebar] = useState(() => window.innerWidth > 760),
     [focus, setFocus] = useState(false);
-  const [tab, setTab] = useState<"files" | "outline" | "tree">("files"),
+  const [tab, setTabState] = useState<"files" | "outline" | "tree">(() => {
+    const saved = localStorage.getItem("open-typora-sidebar-tab");
+    if (saved === "files" || saved === "outline" || saved === "tree") return saved;
+    return "outline";
+  });
+  const setTab = (nextTab: "files" | "outline" | "tree") => {
+    localStorage.setItem("open-typora-sidebar-tab", nextTab);
+    setTabState(nextTab);
+  };
     [theme, setTheme] = useState(
       () => localStorage.getItem("open-typora-theme") || "light",
     );
