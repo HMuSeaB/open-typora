@@ -65,9 +65,9 @@ export default function App() {
     localStorage.setItem("open-typora-sidebar-tab", nextTab);
     setTabState(nextTab);
   };
-    [theme, setTheme] = useState(
-      () => localStorage.getItem("open-typora-theme") || "light",
-    );
+  const [theme, setTheme] = useState(
+    () => localStorage.getItem("open-typora-theme") || "light",
+  );
   const [cursor, setCursor] = useState({ line: 1, column: 1 }),
     [about, setAbout] = useState(false);
   const [activeHeadingLine, setActiveHeadingLine] = useState<number | null>(null);
