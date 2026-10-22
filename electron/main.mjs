@@ -184,6 +184,105 @@ const handlers = {
         });
         return;
       }
+      if (type === "editor") {
+        const { hasSelection, isTable, readOnly } = options || {};
+        const mod = isWin ? "Ctrl+" : "Cmd+";
+        const editorTemplate = [
+          { label: "剪切", accelerator: `${mod}X`, role: "cut", enabled: !readOnly && Boolean(hasSelection) },
+          { label: "复制", accelerator: `${mod}C`, role: "copy", enabled: Boolean(hasSelection) },
+          { label: "粘贴", accelerator: `${mod}V`, role: "paste", enabled: !readOnly },
+          { label: "粘贴为纯文本", accelerator: `${mod}Shift+V`, enabled: !readOnly, click: () => done("paste-plain") },
+          { label: "复制为 Markdown", accelerator: `${mod}Shift+C`, enabled: Boolean(hasSelection), click: () => done("copy-markdown") },
+          { type: "separator" },
+          {
+            label: "插入",
+            submenu: [
+              { label: "表格…", accelerator: `${mod}T`, enabled: !readOnly, click: () => done("table") },
+              { label: "代码块", accelerator: `${mod}Shift+K`, enabled: !readOnly, click: () => done("code") },
+              { label: "公式块", accelerator: `${mod}Shift+M`, enabled: !readOnly, click: () => done("math-block") },
+              { label: "超链接…", accelerator: `${mod}K`, enabled: !readOnly, click: () => done("link") },
+              { label: "图片…", accelerator: `${mod}Shift+I`, enabled: !readOnly, click: () => done("image") },
+              { type: "separator" },
+              { label: "水平分割线", enabled: !readOnly, click: () => done("hr") },
+              { label: "引用", accelerator: `${mod}Alt+Q`, enabled: !readOnly, click: () => done("quote") },
+              { label: "内容目录 (TOC)", enabled: !readOnly, click: () => done("toc") },
+            ],
+          },
+          {
+            label: "格式",
+            submenu: [
+              { label: "加粗", accelerator: `${mod}B`, enabled: !readOnly, click: () => done("bold") },
+              { label: "斜体", accelerator: `${mod}I`, enabled: !readOnly, click: () => done("italic") },
+              { label: "下划线", accelerator: `${mod}U`, enabled: !readOnly, click: () => done("underline") },
+              { label: "删除线", accelerator: `${mod}Shift+\``, enabled: !readOnly, click: () => done("strike") },
+              { label: "行内代码", accelerator: `${mod}Shift+\``, enabled: !readOnly, click: () => done("inline-code") },
+              { label: "高亮", enabled: !readOnly, click: () => done("highlight") },
+              { type: "separator" },
+              { label: "清除格式", enabled: !readOnly, click: () => done("clear-format") },
+            ],
+          },
+          {
+            label: "段落",
+            submenu: [
+              { label: "一级标题", accelerator: `${mod}1`, enabled: !readOnly, click: () => done("heading-1") },
+              { label: "二级标题", accelerator: `${mod}2`, enabled: !readOnly, click: () => done("heading-2") },
+              { label: "三级标题", accelerator: `${mod}3`, enabled: !readOnly, click: () => done("heading-3") },
+              { label: "四级标题", accelerator: `${mod}4`, enabled: !readOnly, click: () => done("heading-4") },
+              { label: "五级标题", accelerator: `${mod}5`, enabled: !readOnly, click: () => done("heading-5") },
+              { label: "六级标题", accelerator: `${mod}6`, enabled: !readOnly, click: () => done("heading-6") },
+              { label: "普通段落", accelerator: `${mod}0`, enabled: !readOnly, click: () => done("heading-0") },
+              { type: "separator" },
+              { label: "提升标题级别", accelerator: `${mod}=`, enabled: !readOnly, click: () => done("heading-up") },
+              { label: "降低标题级别", accelerator: `${mod}-`, enabled: !readOnly, click: () => done("heading-down") },
+              { type: "separator" },
+              { label: "有序列表", accelerator: `${mod}Alt+O`, enabled: !readOnly, click: () => done("ordered-list") },
+              { label: "无序列表", accelerator: `${mod}Alt+U`, enabled: !readOnly, click: () => done("unordered-list") },
+              { label: "任务列表", enabled: !readOnly, click: () => done("task-list") },
+              { type: "separator" },
+              { label: "在上方插入段落", enabled: !readOnly, click: () => done("paragraph-above") },
+              { label: "在下方插入段落", enabled: !readOnly, click: () => done("paragraph-below") },
+            ],
+          },
+        ];
+
+        if (isTable) {
+          editorTemplate.push({
+            label: "表格",
+            submenu: [
+              { label: "上方插入行", enabled: !readOnly, click: () => done("table-rowBefore") },
+              { label: "下方插入行", enabled: !readOnly, click: () => done("table-row") },
+              { label: "左侧插入列", enabled: !readOnly, click: () => done("table-columnBefore") },
+              { label: "右侧插入列", enabled: !readOnly, click: () => done("table-column") },
+              { type: "separator" },
+              { label: "删除行", accelerator: `${mod}Shift+Backspace`, enabled: !readOnly, click: () => done("table-removeRow") },
+              { label: "删除列", enabled: !readOnly, click: () => done("table-removeColumn") },
+              { type: "separator" },
+              { label: "左对齐", enabled: !readOnly, click: () => done("table-left") },
+              { label: "居中对齐", enabled: !readOnly, click: () => done("table-center") },
+              { label: "右对齐", enabled: !readOnly, click: () => done("table-right") },
+              { type: "separator" },
+              { label: "删除表格", enabled: !readOnly, click: () => done("table-deleteTable") },
+            ],
+          });
+        }
+
+        editorTemplate.push(
+          { type: "separator" },
+          { label: "查找与替换", accelerator: `${mod}F`, click: () => done("find") },
+          { label: "全选", accelerator: `${mod}A`, role: "selectAll" }
+        );
+
+        const contextMenu = Menu.buildFromTemplate(editorTemplate);
+        contextMenu.popup({
+          window,
+          x: typeof x === "number" ? Math.round(x) : undefined,
+          y: typeof y === "number" ? Math.round(y) : undefined,
+          callback: () => {
+            setTimeout(() => done(null), 150);
+          },
+        });
+        return;
+      }
       const template = [
         { label: "新建文件…", click: () => done("new-file") },
         { label: "新建文件夹…", click: () => done("new-folder") },

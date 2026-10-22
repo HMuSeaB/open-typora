@@ -9,12 +9,13 @@ import {
   ScanLine,
   Copy,
   Save,
-  Bold,
-  Italic,
+  BookOpen,
+  FileSearch,
+  Settings,
   Code2,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { commandGroups, shortcutLabel } from "../commands";
+import { shortcutLabel } from "../commands";
 import { version } from "../../package.json";
 interface Props {
   name: string;
@@ -47,15 +48,16 @@ export function Toolbar(props: Props) {
   }, [open]);
   const items = [
     { action: "new", icon: FilePlus2, label: "新建文档", shortcut: shortcutLabel("Mod-N") },
-    { action: "open", icon: FolderOpen, label: "打开文件", shortcut: shortcutLabel("Mod-O") },
+    { action: "open", icon: FolderOpen, label: "打开文件…", shortcut: shortcutLabel("Mod-O") },
+    { action: "quick-open", icon: BookOpen, label: "快速打开…", shortcut: shortcutLabel("Mod-P") },
     { action: "save", icon: Save, label: "保存", shortcut: shortcutLabel("Mod-S") },
     { action: "saveAs", icon: Copy, label: "另存为…", shortcut: shortcutLabel("Mod-Shift-S") },
     { action: "find", icon: Search, label: "查找与替换", shortcut: shortcutLabel("Mod-F") },
-    { action: "bold", icon: Bold, label: "粗体", shortcut: shortcutLabel("Mod-B") },
-    { action: "italic", icon: Italic, label: "斜体", shortcut: shortcutLabel("Mod-I") },
-    { action: "code", icon: Code2, label: "代码块", shortcut: "" },
+    { action: "global-search", icon: FileSearch, label: "搜索文件夹内容…", shortcut: shortcutLabel("Mod-Shift-F") },
     { action: "focus", icon: ScanLine, label: "专注模式", shortcut: "F8" },
-    { action: "pdf", icon: FileOutput, label: "导出 PDF", shortcut: "" },
+    { action: "pdf", icon: FileOutput, label: "导出 PDF…", shortcut: "" },
+    { action: "html", icon: FileOutput, label: "导出 HTML…", shortcut: "" },
+    { action: "preferences", icon: Settings, label: "偏好设置…", shortcut: shortcutLabel("Mod-,") },
   ];
   return (
     <>
@@ -105,10 +107,6 @@ export function Toolbar(props: Props) {
                 <button
                   role="menuitem"
                   aria-label={label}
-                  disabled={
-                    !props.rendered &&
-                    ["bold", "italic", "code"].includes(action)
-                  }
                   key={action}
                   onClick={() => {
                     setOpen(false);
@@ -120,12 +118,6 @@ export function Toolbar(props: Props) {
                   <kbd aria-hidden="true">{shortcut}</kbd>
                 </button>
               ))}
-              {commandGroups.filter(group => ["段落", "表格", "格式", "显示", "编辑", "文件"].includes(group.title)).map(group => {
-                const extra = group.items.filter(item => !item.selector && !items.some(quick => quick.action === item.action) && !["theme", "folder", "sidebar", "source", "close-window"].includes(item.action));
-                return <section className="command-group" key={group.title}><div className="menu-divider" /><p>{group.title}</p>{extra.map(item => <button key={item.action} role="menuitem" aria-label={item.label} disabled={
-                  !!item.context && (props.disabled || (["rich", "table"].includes(item.context) && !props.rendered) || (item.context === "table" && props.context !== "table_open"))
-                } onClick={() => { setOpen(false); props.command(item.action); }}><span className="menu-check" /><span>{item.label}</span><kbd>{shortcutLabel(item.key)}</kbd></button>)}</section>;
-              })}
               <div className="menu-divider" />
               <button
                 role="menuitem"

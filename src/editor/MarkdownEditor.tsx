@@ -61,10 +61,11 @@ interface Props {
   onError(error: string): void;
   onCursor(line: number, column: number): void;
   onSelection?(text: string): void;
+  onCommand?(action: string): void;
 }
 export const MarkdownEditor = forwardRef<EditorHandle, Props>(
   function MarkdownEditor(
-    { document: record, rendered, readOnly = false, preferences, typewriter = false, onChange, onError, onCursor, onSelection },
+    { document: record, rendered, readOnly = false, preferences, typewriter = false, onChange, onError, onCursor, onSelection, onCommand },
     ref,
   ) {
     const root = useRef<HTMLDivElement>(null),
@@ -72,8 +73,8 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(
     const model = useRef<MarkdownDocument | null>(null),
       rich = useRef<RichEditor | null>(null),
       source = useRef<EditorView | null>(null);
-    const callbacks = useRef({ onChange, onError, onCursor, onSelection });
-    callbacks.current = { onChange, onError, onCursor, onSelection };
+    const callbacks = useRef({ onChange, onError, onCursor, onSelection, onCommand });
+    callbacks.current = { onChange, onError, onCursor, onSelection, onCommand };
     const initial = useRef(record),
       requested = useRef(rendered),
       activeMode = useRef(rendered);
@@ -111,6 +112,37 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(
       if (activeMode.current) rich.current?.restore();
       else source.current?.focus();
     }
+    const handleEditorContextMenu = async (event: React.MouseEvent) => {
+      const target = event.target as HTMLElement;
+      const image = target.closest("img");
+      if (image) {
+        event.preventDefault();
+        target.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+        return;
+      }
+      event.preventDefault();
+
+      const selectionString = activeMode.current
+        ? (rich.current?.clipboard().plain || window.getSelection()?.toString() || "")
+        : (source.current ? source.current.state.sliceDoc(source.current.state.selection.main.from, source.current.state.selection.main.to) : "");
+      const hasSelection = Boolean(selectionString && selectionString.trim().length > 0);
+      const isTable = Boolean(target.closest("table, td, th"));
+
+      if (host.showContextMenu) {
+        const action = await host.showContextMenu({
+          type: "editor",
+          hasSelection,
+          isTable,
+          readOnly: viewOptions.current.readOnly,
+          x: event.clientX,
+          y: event.clientY,
+        });
+        if (action) {
+          focusEditor();
+          callbacks.current.onCommand?.(action);
+        }
+      }
+    };
     const publish = () => {
       callbacks.current.onChange(model.current!.toMarkdown());
       historyState();
@@ -566,13 +598,14 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(
           const node = image.closest<HTMLElement>("[data-cid]"); if (from === undefined && node) from = model.current?.nodes.find(item => item.id === node.dataset.cid)?.from;
           const reference = imageReferences(model.current?.text || "").find(item => item.from === from);
           if (reference) { event.preventDefault(); setEditingImage(reference); }
-        }} onContextMenu={event => { if ((event.target as HTMLElement).closest("img")) { event.preventDefault(); (event.target as HTMLElement).dispatchEvent(new MouseEvent("dblclick", { bubbles: true })); } }}>
+        }} onContextMenu={handleEditorContextMenu}>
           <div className="rich-document" ref={root} />
         </div>
         <div
           className="source-surface"
           hidden={visibleMode}
           ref={sourceParent}
+          onContextMenu={handleEditorContextMenu}
         />
       </div>
     );

@@ -343,6 +343,15 @@ export default function App() {
     }
     else if (action === "copy-markdown") void host.writeClipboard(editor()?.selectionText(true) || "").catch(error => session.setMessage(error.message));
     else if (action === "paste-plain") void host.readClipboard().then(text => editor()?.insert(text)).catch(error => session.setMessage(error.message));
+    else if (action === "copy") {
+      try { document.execCommand("copy"); } catch {}
+    } else if (action === "cut") {
+      try { document.execCommand("cut"); } catch {}
+    } else if (action === "paste") {
+      void host.readClipboard().then(text => editor()?.insert(text)).catch(error => session.setMessage(error.message));
+    } else if (action === "select-all") {
+      try { document.execCommand("selectAll"); } catch {}
+    }
     else if (action === "image" && active) void (async () => {
       await host.persist({ documents: session.documents, activeId: session.activeId });
       const image = await host.chooseImage(active.id, { ...preferences, source: active.content }); if (!image) return;
@@ -564,6 +573,7 @@ export default function App() {
                       setCursor({ line, column });
                   }}
                   onSelection={text => { if (record.id === session.activeId) setSelection(text); }}
+                  onCommand={action => commands.current({ action })}
                 />
               </div>
             ))}
