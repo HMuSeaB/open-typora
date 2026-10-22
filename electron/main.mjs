@@ -94,6 +94,12 @@ ipcMain.on("workspace:prepared", (event, id, value) => { if (event.sender !== wi
 function prepareOperation(phase, change) { return new Promise((resolve, reject) => { const id = randomUUID(), timeout = setTimeout(() => { handshakes.delete(id); reject(new Error("文件操作等待超时。")); }, 30000); handshakes.set(id, value => { clearTimeout(timeout); handshakes.delete(id); resolve(value); }); window.webContents.send("workspace:operation", id, phase, change); }); }
 let operationRunning = false;
 const handlers = {
+  toggleFullScreen: () => {
+    if (!window) return false;
+    const next = !window.isFullScreen();
+    window.setFullScreen(next);
+    return next;
+  },
   background: () => readBackground(store.dataDir),
   clearBackground: () => clearBackground(store.dataDir),
   chooseBackground: async () => {

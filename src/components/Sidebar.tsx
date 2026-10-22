@@ -16,6 +16,8 @@ import {
   Folder,
   FileCode,
   FolderTree,
+  ChevronsDownUp,
+  ChevronsUpDown,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { DocumentRecord, FileEntry, FileOperation } from "../types";
@@ -70,6 +72,15 @@ export function Sidebar(props: Props) {
       else next.add(line);
       return next;
     });
+  };
+
+  const collapseAll = () => {
+    const parentLines = headingsWithMeta.filter(h => h.hasChildren).map(h => h.line);
+    setCollapsedLines(new Set(parentLines));
+  };
+
+  const expandAll = () => {
+    setCollapsedLines(new Set());
   };
 
   const headingsWithMeta = useMemo(() => {
@@ -395,6 +406,7 @@ export function Sidebar(props: Props) {
                     open={props.openToken}
                     context={handleContextMenu}
                     move={(path, target) => props.operation({ action: "move", path, target })}
+                    operation={props.operation}
                     sort={sort}
                     descending={descending}
                     foldersFirst={foldersFirst}
@@ -407,6 +419,18 @@ export function Sidebar(props: Props) {
                         className={`modern-file-row ${isCurrent ? "active-row" : ""}`}
                         key={file.token}
                         onContextMenu={(event) => handleContextMenu(event, file)}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            props.openToken(file.token);
+                          } else if (event.key === "F2") {
+                            event.preventDefault();
+                            props.operation({ action: "rename", path: file.path, name: file.name });
+                          } else if (event.key === "Delete") {
+                            event.preventDefault();
+                            props.operation({ action: "trash", path: file.path, name: file.name });
+                          }
+                        }}
                       >
                         <button
                           className="modern-file-btn"
@@ -473,6 +497,29 @@ export function Sidebar(props: Props) {
         ) : (
           /* 文档大纲原版优雅重构版 */
           <nav className="modern-outline-container" aria-label="文档大纲">
+            {props.headings.length ? (
+              <div className="outline-header-bar">
+                <span className="outline-header-title">大纲 ({props.headings.length})</span>
+                <div className="outline-header-actions">
+                  <button
+                    type="button"
+                    className="icon-button outline-action-btn"
+                    title="全部折叠"
+                    onClick={collapseAll}
+                  >
+                    <ChevronsDownUp size={13} />
+                  </button>
+                  <button
+                    type="button"
+                    className="icon-button outline-action-btn"
+                    title="全部展开"
+                    onClick={expandAll}
+                  >
+                    <ChevronsUpDown size={13} />
+                  </button>
+                </div>
+              </div>
+            ) : null}
             {props.headings.length ? (
               <div className="outline-tree">
                 {visibleHeadings.map(({ heading, hasChildren }, index) => {

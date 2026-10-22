@@ -277,6 +277,13 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(
                   return true;
                 },
               },
+              {
+                key: "Mod-/",
+                run: () => {
+                  callbacks.current.onCommand?.("source");
+                  return true;
+                },
+              },
               ...searchKeymap,
               ...defaultKeymap,
               indentWithTab,
@@ -478,6 +485,7 @@ export const MarkdownEditor = forwardRef<EditorHandle, Props>(
         link: (url) =>
           void (/^(?:https?:|mailto:)/i.test(url) ? host.openLink(url) : host.openDocumentLink(original.id, url))
             .catch((error) => callbacks.current.onError(error.message)),
+        toast: (message) => callbacks.current.onError(message),
         compositionFinished: () => setMode(requested.current),
       });
       setMode(requested.current);

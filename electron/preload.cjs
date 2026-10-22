@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld("desktop", {
   plugins: () => call("plugins"), installPlugin: () => call("installPlugin"), removePlugin: id => call("removePlugin", id),
   themes: () => call("themes"), installTheme: () => call("installTheme"), conversionSettings: choose => call("conversionSettings", choose), importDocument: () => call("importDocument"), exportConverted: (id, format, source, html) => call("exportConverted", id, format, source, html), imageAction: (id, sources, action, options) => call("imageAction", id, sources, action, options),
   ready: () => call("ready"),
+  toggleFullScreen: () => call("toggleFullScreen"),
   cancelClose: () => call("cancelClose"),
   fileOperation: operation => call("fileOperation", operation),
   recent: () => call("recent"),

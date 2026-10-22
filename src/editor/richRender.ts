@@ -497,9 +497,11 @@ function tokenInlineHtml(
       cursor += after.length;
       const href =
         frame.href !== undefined ? ` href="${escapeHtml(frame.href)}"` : "";
+      const title =
+        frame.href !== undefined ? ` title="${escapeHtml(frame.href)} (按住 Ctrl 并单击访问)"` : "";
       const style = frame.style ? ` style="${escapeHtml(frame.style)}"` : "";
       append(
-        `<span class="md-inline" data-mark="${frame.mark === "a" ? "link" : frame.mark}" data-inline-from="${frame.from}" data-inline-to="${cursor}">${meta(frame.before)}<${frame.tag}${href}${style}>${frame.html}</${frame.tag}>${meta(after)}</span>`,
+        `<span class="md-inline" data-mark="${frame.mark === "a" ? "link" : frame.mark}" data-inline-from="${frame.from}" data-inline-to="${cursor}">${meta(frame.before)}<${frame.tag}${href}${title}${style}>${frame.html}</${frame.tag}>${meta(after)}</span>`,
       );
       continue;
     }

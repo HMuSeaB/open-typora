@@ -1,6 +1,6 @@
 import { useMemo, useRef, useState } from "react";
 import { ChevronRight, FileText, Folder } from "lucide-react";
-import type { FileEntry } from "../types";
+import type { FileEntry, FileOperation } from "../types";
 export type FileSort = "natural" | "name" | "modified" | "created";
 export function sortFiles(files: FileEntry[], sort: FileSort, descending: boolean, foldersFirst: boolean) {
   return [...files].sort((a, b) => {
@@ -9,7 +9,7 @@ export function sortFiles(files: FileEntry[], sort: FileSort, descending: boolea
     return folder || (descending ? -1 : 1) * (value || a.name.localeCompare(b.name));
   });
 }
-export function FileTree({ files, folder, activePath, open, context, move, sort, descending, foldersFirst }: { files: FileEntry[]; folder: string | null; activePath?: string | null; open(token: string): void; context(event: React.MouseEvent, file: FileEntry): void; move(path: string, target: string): void; sort: FileSort; descending: boolean; foldersFirst: boolean }) {
+export function FileTree({ files, folder, activePath, open, context, move, operation, sort, descending, foldersFirst }: { files: FileEntry[]; folder: string | null; activePath?: string | null; open(token: string): void; context(event: React.MouseEvent, file: FileEntry): void; move(path: string, target: string): void; operation?(operation: FileOperation): void; sort: FileSort; descending: boolean; foldersFirst: boolean }) {
   const [closed, setClosed] = useState(new Set<string>()), root = useRef<HTMLDivElement>(null);
   const children = useMemo(() => {
     const groups = new Map<string, FileEntry[]>();
@@ -25,6 +25,9 @@ export function FileTree({ files, folder, activePath, open, context, move, sort,
         if (["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) { event.preventDefault(); buttons[event.key === "Home" ? 0 : event.key === "End" ? buttons.length - 1 : Math.max(0, Math.min(buttons.length - 1, index + (event.key === "ArrowDown" ? 1 : -1)))]?.focus(); }
         if (event.key === "ArrowRight" && directory) { event.preventDefault(); expanded ? buttons[index + 1]?.focus() : toggle(file.path, false); }
         if (event.key === "ArrowLeft") { event.preventDefault(); if (directory && expanded) toggle(file.path, true); else { const parent = event.currentTarget.dataset.parent; buttons.find(button => button.dataset.path === parent)?.focus(); } }
+        if (event.key === "Enter") { event.preventDefault(); if (directory) toggle(file.path, expanded); else open(file.token); }
+        if (event.key === "F2") { event.preventDefault(); operation?.({ action: "rename", path: file.path, name: file.name }); }
+        if (event.key === "Delete") { event.preventDefault(); operation?.({ action: "trash", path: file.path, name: file.name }); }
       }}>{directory ? <><ChevronRight size={13} className={`tree-chevron ${expanded ? "tree-chevron-open" : ""}`} /><Folder size={15} className="folder-icon" /></> : <><span style={{ width: 13 }} /><FileText size={15} className="file-icon" /></>}<span className="tree-file-name">{file.name}</span></button>
       {directory && expanded && <div role="group">{children.get(file.relative)?.map(child => node(child, depth + 1))}</div>}
     </div>;

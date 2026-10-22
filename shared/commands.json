@@ -112,6 +112,7 @@
     {"label":"源码模式","action":"source","key":"Mod-/","context":"document"},
     {"label":"专注模式","action":"focus","key":"F8","context":"document"},
     {"label":"打字机模式","action":"typewriter","key":"F9","context":"document"},
+    {"label":"全屏模式","action":"fullscreen","key":"F11"},
     {"label":"显示／隐藏侧栏","action":"sidebar","key":"Mod-Shift-L"},
     {"label":"大纲","action":"outline","key":"Mod-Ctrl-1"},
     {"label":"文件列表","action":"files","key":"Mod-Ctrl-2"},

@@ -54,6 +54,7 @@ export interface Command {
 }
 export interface Host {
   native: boolean;
+  toggleFullScreen?(): Promise<boolean>;
   cancelClose(): Promise<unknown>;
   windowAction(action: string): Promise<unknown>;
   imageAction(id: string, sources: string[], action: string, options?: Record<string, unknown>): Promise<Record<string, string> | null>;

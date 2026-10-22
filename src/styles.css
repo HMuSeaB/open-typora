@@ -1661,6 +1661,48 @@ svg {
   flex: 1;
 }
 
+.outline-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 6px 6px 6px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 6px;
+}
+
+.outline-header-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.outline-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.outline-action-btn {
+  width: 22px;
+  height: 22px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.outline-action-btn:hover {
+  color: var(--foreground);
+  background-color: var(--hover-item-bg);
+}
+
 .outline-tree {
   position: relative;
   display: flex;

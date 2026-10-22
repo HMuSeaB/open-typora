@@ -325,6 +325,9 @@ export default function App() {
       }
     } else if (["new", "newWindow", "newTab"].includes(action)) void session.create();
     else if (action === "open") void session.open();
+    else if (action === "fullscreen") {
+      if (host.toggleFullScreen) void host.toggleFullScreen().catch(e => session.setMessage((e as Error).message));
+    }
     else if (action === "folder") void session.openFolder();
     else if (action === "save") void session.save();
     else if (action === "encoding") setDialog("encoding");
@@ -404,6 +407,12 @@ export default function App() {
       if (event.key === "Escape") {
         setFocus(false);
         setAbout(false);
+      }
+      if (event.key === "F11") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (host.toggleFullScreen) void host.toggleFullScreen().catch(() => {});
+        return;
       }
       // 循环切换标签页：Ctrl+Tab (向右) / Ctrl+Shift+Tab (向左)
       if (event.ctrlKey && !event.altKey && !event.metaKey && event.key === "Tab") {
@@ -538,8 +547,24 @@ export default function App() {
       />
       <main className={`writing-area ${background ? "has-background" : ""}`} aria-label="写作空间" inert={session.fileOperationBusy}>
         {session.documents.length > 0 && (
-          <div className="document-tabs-bar" role="tablist" aria-label="已打开文档">
-            <div className="document-tabs-scroll">
+          <div
+            className="document-tabs-bar"
+            role="tablist"
+            aria-label="已打开文档"
+            onDoubleClick={(e) => {
+              if (e.target === e.currentTarget || (e.target as HTMLElement).classList.contains("document-tabs-scroll")) {
+                void session.create();
+              }
+            }}
+          >
+            <div
+              className="document-tabs-scroll"
+              onWheel={(e) => {
+                if (!e.ctrlKey && !e.metaKey && e.deltaY) {
+                  e.currentTarget.scrollLeft += e.deltaY;
+                }
+              }}
+            >
               {session.documents.map((record) => {
                 const isCurrent = record.id === session.activeId;
                 const isDirty = record.content !== record.savedContent;
@@ -550,6 +575,10 @@ export default function App() {
                     role="tab"
                     aria-selected={isCurrent}
                     onClick={() => session.setActiveId(record.id)}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      void session.close(record.id);
+                    }}
                     onContextMenu={(e) => void handleTabContextMenu(e, record)}
                     onAuxClick={(e) => {
                       if (e.button === 1) void session.close(record.id);

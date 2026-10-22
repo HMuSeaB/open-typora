@@ -29,6 +29,7 @@ export interface RichCallbacks {
   cursor(line: number, column: number): void;
   image(file: File): void;
   link(url: string): void;
+  toast?(message: string): void;
   compositionFinished(): void;
 }
 export class RichEditor {
@@ -782,6 +783,9 @@ export class RichEditor {
           const id = decodeURIComponent(address.slice(1)), heading = (this.model.environment.headings as { id: string; line: number }[])?.find(item => item.id === id);
           if (heading) this.jump(heading.line);
         } else this.callbacks.link(address);
+      } else {
+        const modKey = /Mac/.test(navigator.platform) ? "Cmd" : "Ctrl";
+        this.callbacks.toast?.(`按住 ${modKey} 并单击可打开链接`);
       }
     }
     const fence = target.closest<HTMLElement>("[data-fence]");
@@ -1234,7 +1238,7 @@ export class RichEditor {
     const node = this.model.nodeAt(from);
     this.root
       .querySelector(`[data-cid="${node?.id}"]`)
-      ?.scrollIntoView({ block: "start" });
+      ?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
   releaseFence() {
     if (!this.fence) return;

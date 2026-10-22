@@ -26,6 +26,15 @@ function download(name: string, text: string, type = "text/markdown;charset=utf-
 }
 const browser: Host = {
   native: false,
+  async toggleFullScreen() {
+    if (document.fullscreenElement) {
+      await document.exitFullscreen?.();
+      return false;
+    } else {
+      await document.documentElement.requestFullscreen?.();
+      return true;
+    }
+  },
   async cancelClose() {},
   async windowAction() { return false; },
   async imageAction() { throw new Error("图片文件操作请使用桌面应用。"); },
