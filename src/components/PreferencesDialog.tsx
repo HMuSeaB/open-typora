@@ -14,7 +14,7 @@ export function PreferencesDialog({ value, change, theme, changeTheme, themes, i
     <BackgroundSettings asset={background} value={value} change={change} choose={chooseBackground} clear={clearBackground} />
     <fieldset><legend>插件</legend><p className="dialog-note">无图阅读、只读模式、段落聚焦与常显语法标记等社区插件。</p><button onClick={plugins}>管理插件…</button></fieldset>
     <fieldset><legend>编辑器</legend><div className="form-grid">
-      <label>正文字号<input type="number" min={12} max={28} value={value.fontSize} onChange={e => { const n = Number(e.target.value); if (n >= 12 && n <= 28) change({ ...value, fontSize: n }); }} /></label>
+      <label>正文字号<input type="number" min={12} max={36} value={value.fontSize} onChange={e => { const n = Number(e.target.value); if (n >= 12 && n <= 36) change({ ...value, fontSize: n }); }} /></label>
       <label>阅读速度（词/分钟）<input type="number" min={50} max={1000} value={value.readingSpeed} onChange={e => { const n = Number(e.target.value); if (n >= 50 && n <= 1000) change({ ...value, readingSpeed: n }); }} /></label>
       <label>缩进宽度<select aria-label="缩进宽度" value={value.tabSize} onChange={e => change({ ...value, tabSize: Number(e.target.value) })}><option value={2}>2 个空格</option><option value={4}>4 个空格</option></select></label>
     </div></fieldset>

@@ -24,7 +24,7 @@ export function loadPreferences(): Preferences {
     if (saved.pdfPaper === "letter") next.pdfPaper = "letter";
     if (Number.isFinite(saved.pdfMargin)) next.pdfMargin = Math.max(18, Math.min(100, saved.pdfMargin));
     if (Number.isFinite(saved.readingSpeed)) next.readingSpeed = Math.max(50, Math.min(1000, saved.readingSpeed));
-    if (Number.isFinite(saved.fontSize)) next.fontSize = Math.max(12, Math.min(28, saved.fontSize));
+    if (Number.isFinite(saved.fontSize)) next.fontSize = Math.max(12, Math.min(36, saved.fontSize));
     if ([2, 4].includes(saved.tabSize)) next.tabSize = saved.tabSize;
     return next;
   } catch { return { ...defaultPreferences }; }

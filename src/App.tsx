@@ -213,10 +213,46 @@ export default function App() {
   const statistics = useMemo(() => dialog === "statistics" && selection ? documentStatistics(selection, selection, preferences.readingSpeed) : wholeStatistics, [dialog, selection, wholeStatistics]);
   const selectionCharacters = useMemo(() => Array.from(selection.replace(/\s/g, "")).length, [selection]);
   useEffect(() => { localStorage.setItem("open-typora-count-unit", countUnit); }, [countUnit]);
+  const fontSizeRef = useRef(preferences.fontSize);
+  fontSizeRef.current = preferences.fontSize;
+  const fontZoomTimer = useRef<any>(null);
+
   useEffect(() => {
     localStorage.setItem("open-typora-preferences", JSON.stringify(preferences));
     document.documentElement.style.setProperty("--editor-font-size", `${preferences.fontSize}px`);
   }, [preferences]);
+
+  useEffect(() => {
+    const handleWheelZoom = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+
+      const step = e.deltaY < 0 ? 1 : -1;
+      const current = fontSizeRef.current;
+      const nextSize = Math.max(12, Math.min(36, current + step));
+      if (nextSize === current) return;
+
+      fontSizeRef.current = nextSize;
+      document.documentElement.style.setProperty("--editor-font-size", `${nextSize}px`);
+
+      if (fontZoomTimer.current) clearTimeout(fontZoomTimer.current);
+      fontZoomTimer.current = setTimeout(() => {
+        setPreferences(prev => {
+          const next = { ...prev, fontSize: nextSize };
+          setMarkdownOptions(next);
+          return next;
+        });
+      }, 100);
+
+      session.setMessage(`正文字号：${nextSize}px`);
+    };
+
+    window.addEventListener("wheel", handleWheelZoom, { passive: false });
+    return () => {
+      window.removeEventListener("wheel", handleWheelZoom);
+      if (fontZoomTimer.current) clearTimeout(fontZoomTimer.current);
+    };
+  }, [session]);
   useEffect(() => { if (window.desktop?.viewState) void window.desktop.viewState(focus, typewriter, sidebar).catch(() => {}); }, [focus, typewriter, sidebar]);
   async function refreshThemes() { const items = await host.themes(); setThemes(items); return items; }
   useEffect(() => { if (session.ready) void refreshThemes().catch(e => session.setMessage(e.message)); }, [session.ready]);
@@ -383,6 +419,33 @@ export default function App() {
           }
         }
         return;
+      }
+      // 键盘快捷缩放正文字号：Ctrl + Plus / Ctrl + Minus
+      if ((event.ctrlKey || event.metaKey) && !event.altKey) {
+        if (event.code === "NumpadAdd" || (event.shiftKey && (event.key === "+" || event.key === "="))) {
+          event.preventDefault();
+          event.stopPropagation();
+          const current = fontSizeRef.current;
+          const nextSize = Math.min(36, current + 1);
+          if (nextSize !== current) {
+            fontSizeRef.current = nextSize;
+            changePreferences({ ...preferences, fontSize: nextSize });
+            session.setMessage(`正文字号：${nextSize}px`);
+          }
+          return;
+        }
+        if (event.code === "NumpadSubtract") {
+          event.preventDefault();
+          event.stopPropagation();
+          const current = fontSizeRef.current;
+          const nextSize = Math.max(12, current - 1);
+          if (nextSize !== current) {
+            fontSizeRef.current = nextSize;
+            changePreferences({ ...preferences, fontSize: nextSize });
+            session.setMessage(`正文字号：${nextSize}px`);
+          }
+          return;
+        }
       }
       const action = commandForKey(event);
       if (host.native && ["new", "newWindow", "newTab", "open", "save", "saveAs", "close", "close-window"].includes(action || "")) return;

@@ -548,6 +548,7 @@ app
       );
       window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
       window.webContents.on("will-navigate", (event) => event.preventDefault());
+      window.webContents.setVisualZoomLevelLimits(1, 1);
       if (development) window.loadURL(development);
       else window.loadFile(path.join(root, "dist/index.html"));
       window.on("close", (event) => {
